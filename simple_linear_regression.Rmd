@@ -1,0 +1,194 @@
+# Simple Linear Regression
+
+Often a simple linear regression is an adequate model to describe the relationship between two variables.  You may suspect that one variable depends on another, whether that may be in a positive or negative way.  For example,
+you may intuitively know that a heavier car will have lower gas mileage.  Linear regression provides a way 
+to measure that relationship and visualize it as well.
+
+
+## 1. Install and load the necessary packages.
+
+There are several packages that you can assume will be useful when doing most any simple linear regression.  Four are listed here.  Most notable may be dplyr, which can make your data tidy and ggplot2, which is excellent for visualization.
+
+```{r message = FALSE}
+
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("broom")
+install.packages("ggpubr")
+
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(ggpubr)
+
+```
+
+## 2. Get the data.
+
+Perhaps we want to see if happiness really does depend on income.  For this example we will use a data set that contains  observations about income (in a range of $15k to $75k) and happiness (rated on a scale of 1 to 10) in an sample of 500 people. The income values are divided by 10,000 to make the income data match the scale of the happiness scores (so a value of $2 represents $20,000, $3 is $30,000, etc.)
+
+Follow these four steps to load the data set:
+
+1.  In RStudio, go to File > Import dataset  > From Text (base).
+
+2.  Choose the data file you have downloaded from GitHub or wherever I have posted this (income.data), and an Import Dataset window pops up.
+
+3.  In the Data Frame window, you should see an X (index) column and columns listing the data for each of the variables (income and happiness).
+
+4.  Click on the Import button and the file should appear in your Environment tab on the upper right side of the RStudio screen.
+
+After you’ve loaded the data, check that it has been read in correctly using `summary()`
+
+```{r Summary of Income Data, message=TRUE}
+
+summary(income.data)
+
+```
+
+We can use R to check that our data meet the four main assumptions for linear regression.
+This is where an understanding of basic R syntax for plotting comes in handy.  All of these actions are also possible using the ggplot2 visualization package, but if a user can quickly see if the data set merits a linear regression in the first place it can save a lot of time.  
+
+1.  Independence of observations (aka no autocorrelation).
+
+Because we only have one independent variable and one dependent variable, we don’t need to test for any hidden relationships among variables.
+
+If you know that you have autocorrelation within variables (i.e. multiple observations of the same test subject), then do not proceed with a simple linear regression. Use a structured model, like a linear mixed-effects model, instead.
+
+2.  Normality.
+
+An easy way to check for normality is to use the function `hist()`
+```{r Histogram, echo=TRUE}
+
+hist(income.data$happiness)
+
+```
+The income data is normal enough that the results should not be affected.
+
+3.  Linearity.
+
+The relationship between the independent and dependent variable must be linear. We can test this visually with a scatter plot to see if the distribution of data points could be described with a straight line.
+```{r Linearity, echo=TRUE}
+
+plot(happiness ~ income, data = income.data)
+
+```
+The model looks very linear, so we can proceed with confidence.
+
+4.  Homoscedasticity (aka homogeneity of variance).
+
+This means that the prediction error doesn’t change significantly over the range of prediction of the model. We can test this assumption later, after fitting the linear model.
+
+
+## 3. Build the Model
+
+The data meets the assumptions, and we can perform a linear regression analysis to evaluate the relationship between the independent and dependent variables.
+
+#Simple regression: income and happiness.
+
+Let’s see if there’s a linear relationship between income and happiness in our survey of 500 people with incomes ranging from $15k to $75k, where happiness is measured on a scale of 1 to 10.
+
+All this takes is two lines of code. The first line of code makes the linear model, and the second line prints out the summary of the model:
+
+```{r Simple Linear Regression Model, echo=TRUE}
+
+income_happiness_lm <- lm(happiness ~ income, data = income.data)
+
+summary(income_happiness_lm)
+
+```
+The Coefficients section shows:
+
+The estimates (Estimate) for the model parameters – 
+the value of the y-intercept (in this case 0.204) and the estimated effect of income on happiness (0.713).
+
+The standard error of the estimated values (Std. Error).
+
+The test statistic (t value, in this case the t-statistic).
+
+The p-value ( Pr(>| t | ) ), aka the probability of finding the given t-statistic if the null hypothesis of no relationship were true.
+
+The final three lines are model diagnostics – the most important thing to note is the p-value (here it is 2.2e-16, or almost zero), which will indicate whether the model fits the data well.
+
+From these results, we can say that there is a significant positive relationship between income and happiness (p-value < 0.001), with a 0.713-unit (+/- 0.01) increase in happiness for every unit increase in income.
+
+
+## 4. Check for Homoscedasticity
+
+We can run `plot(income.happiness.lm)` to see if the observed data meets our model assumptions:
+```{r Homoscedasticity Test, echo=TRUE}
+
+par(mfrow=c(2,2))
+plot(income_happiness_lm)
+par(mfrow=c(1,1))
+
+```
+Note that the `par(mfrow())` command divides the Plots window into the number of rows and columns specified in the brackets. Thus `par(mfrow=c(2,2)`)` divides it up into two rows and two columns. To go back to plotting one graph in the entire window, set the parameters again and replace the (2,2) with (1,1).
+
+Residuals are the unexplained variance. They are not exactly the same as model error, but they are calculated from it, so seeing a bias in the residuals would also indicate a bias in the error.
+
+The most important thing to look for is that the red lines representing the mean of the residuals are all basically horizontal and centered around zero. This means there are no outliers or biases in the data that would make a linear regression invalid.
+
+In the Normal Q-Qplot in the top right, we can see that the real residuals from our model form an almost perfectly one-to-one line with the theoretical residuals from a perfect model.
+
+Based on these residuals, we can say that our model meets the assumption of homoscedasticity.
+
+## 5. Visualize the Results
+
+Follow 4 steps to visualize the results of your simple linear regression.
+
+1.  Plot the data points on a graph.
+```{r Plot the Points, echo=TRUE}
+
+income_graph<-ggplot(income.data, aes(x=income, y=happiness))+
+                     geom_point()
+income_graph
+
+```
+ggplot makes everything look better.  
+
+2.  Add the linear regression line to the plotted data
+Add the regression line using geom_smooth() and typing in lm as your method for creating the line. 
+This will add the line of the linear regression as well as the standard error of the estimate (in this case +/- 0.01) as a light grey stripe surrounding the line.
+```{r Linear Regression Line Addition, echo= FALSE}
+
+income_graph <- income_graph + geom_smooth(method="lm", col="black")
+
+income_graph
+
+```
+3.  Add the equation for the regression line.
+This is kind of cool.  I don't see it that often in other models but it could be helpful.
+```{r Linear Equation Addition to Graph, echo=FALSE}
+
+income_graph <- income_graph +
+  stat_regline_equation(label.x = 3, label.y = 7)
+
+income_graph
+
+```
+4. Make the graph ready for publication.
+We can add some style parameters using `theme_bw()` and making custom labels using `labs()`.
+
+```{r Make Graph ready for Publication, echo=FALSE}
+
+income_graph +
+  theme_bw() +
+  labs(title = "Reported happiness as a function of income",
+      x = "Income (x$10,000)",
+      y = "Happiness score (0 to 10)")
+
+```
+## 6. Report your results
+
+In addition to the graph, include a brief statement explaining the results of the regression model.
+
+Reporting the results of simple linear regression likely has a phrase like this:
+
+"We found a significant relationship between income and happiness (p < 0.001, R2 = 0.73 ± 0.0193), 
+with a 0.73-unit increase in reported happiness for every $10,000 increase in income."
+
+
+## 7. Share the Source Material
+
+Head over to the [source](https://www.scribbr.com/statistics/linear-regression-in-r/) and view other 
+aspects of this example.
